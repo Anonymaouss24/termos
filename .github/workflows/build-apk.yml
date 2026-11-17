@@ -1,0 +1,113 @@
+name: Rilis termOS (APK + web)
+
+# Setiap kali isi repo berubah di branch main:
+#  1. web app diterbitkan ke GitHub Pages
+#  2. APK dibangun dan dirilis di GitHub Releases (tag v<versi dari version.json>)
+# termOS di HP lalu mendeteksi versi baru dan menampilkan patch notes.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: rilis-termos
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baca versi
+        id: ver
+        run: echo "version=$(jq -r .version version.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Siapkan file web (+ build.json)
+        run: |
+          mkdir -p site
+          cp index.html manifest.webmanifest sw.js icon-192.png icon-512.png version.json site/
+          jq -n --arg repo "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" --arg v "${{ steps.ver.outputs.version }}" \
+            '{repo:$repo, sha:$sha, version:$v, built:(now|todate)}' > site/build.json
+          mkdir -p android/app/src/main/assets/termos android/app/src/main/res/mipmap-xxxhdpi
+          cp site/* android/app/src/main/assets/termos/
+          cp icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.5'
+
+      - name: Kunci tanda tangan APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            if [ "${{ github.event.repository.private }}" = "false" ]; then
+              echo "::error::Repo ini publik. Buat dulu secret KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions) agar kunci APK aman."
+              exit 1
+            fi
+            echo "KEYSTORE_PASSWORD=termos-launcher" >> "$GITHUB_ENV"
+            KEYSTORE_PASSWORD=termos-launcher
+          fi
+          if [ ! -f android/termos.keystore ]; then
+            keytool -genkeypair -keystore android/termos.keystore -storetype PKCS12 -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" \
+              -alias termos -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=termOS"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add android/termos.keystore
+            git commit -m "tambah keystore termOS (terkunci password)"
+            git push
+          fi
+
+      - name: Build APK
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Rilis di GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          cp android/app/build/outputs/apk/release/app-release.apk "termOS-v$V.apk"
+          jq -r --arg v "$V" '.changelog[] | select(.version==$v) | .notes[] | "- " + .' version.json > notes.md
+          [ -s notes.md ] || echo "- perbaikan dan peningkatan" > notes.md
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" "termOS-v$V.apk" --clobber
+            gh release edit "v$V" --notes-file notes.md
+          else
+            gh release create "v$V" "termOS-v$V.apk" --title "termOS v$V" --notes-file notes.md
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: termOS-apk
+          path: termOS-v*.apk
+
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
