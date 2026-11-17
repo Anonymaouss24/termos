@@ -1,0 +1,46 @@
+{
+  "version": "3.3.0",
+  "date": "2026-11-18",
+  "changelog": [
+    {
+      "version": "3.3.0",
+      "date": "2026-11-18",
+      "notes": [
+        "CCTV publik: kamera publik terdekat tampil langsung (Windy Webcams, key gratis) + portal CCTV resmi Jasa Marga, Bandung, Yogyakarta, Malang, Palembang",
+        "Sistem update: patch notes muncul otomatis setiap ada versi baru (perintah: update, update log)",
+        "APK otomatis dirilis di GitHub Releases setiap update, tinggal unduh dan pasang",
+        "Grafik kripto: label harga tidak lagi bertumpuk, angka harga tidak terpotong",
+        "Kabar terkini: peringatan gempa/cuaca/kurs selalu di atas berita"
+      ]
+    },
+    {
+      "version": "3.2.0",
+      "date": "2026-11-18",
+      "notes": [
+        "Kabar otomatis tanpa chat: gempa BMKG, cuaca ekstrem, kurs rupiah, BTC, berita Antara/CNN",
+        "Ticker berjalan + banner + getar + notifikasi untuk kejadian penting",
+        "Cek macet ke tujuan dengan peta rute (TomTom live / OSRM), kejadian lalu lintas sekitar",
+        "Grafik kripto interaktif 24 jam / 7 / 30 / 365 hari"
+      ]
+    },
+    {
+      "version": "3.1.0",
+      "date": "2026-11-18",
+      "notes": [
+        "AI kolaborasi di terminal (chat, ?pertanyaan) dengan data live dan tombol JALANKAN",
+        "Data live: cuaca, gempa, kripto, kurs, waktu, libur, Wikipedia, 2.400+ API publik",
+        "Buka aplikasi (WhatsApp dll) dan APK launcher untuk jadi layar utama",
+        "Alat dokumen: PDF ke Word, Word ke PDF, foto ke PDF, gabung dan potong PDF"
+      ]
+    },
+    {
+      "version": "3.0.0",
+      "date": "2026-11-18",
+      "notes": [
+        "Beranda baru: DeepSeek AI, log chat dan telepon (buram, tanpa nama)",
+        "Scanner file/APK dan database ancaman dari GitHub",
+        "Vault AES-256, PIN darurat, 2FA, audit keamanan"
+      ]
+    }
+  ]
+}

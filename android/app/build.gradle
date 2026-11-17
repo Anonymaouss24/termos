@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+}
+
+// versi APK diambil dari version.json di akar repo (sumber tunggal)
+def verJson = new groovy.json.JsonSlurper().parse(rootProject.file('../version.json'))
+def verName = verJson.version as String
+def verParts = verName.tokenize('.').collect { it as int }
+def verCode = verParts[0] * 10000 + verParts[1] * 100 + verParts[2]
+def ksPass = System.getenv('KEYSTORE_PASSWORD') ?: 'termos-launcher'
+
+android {
+    namespace 'id.termos.launcher'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'id.termos.launcher'
+        minSdk 29          // Android 10 ke atas
+        targetSdk 34
+        versionCode verCode
+        versionName verName
+    }
+
+    // Kunci tanda tangan dibuat otomatis oleh GitHub Actions saat build pertama
+    // dan disimpan di repo (terkunci password dari secret KEYSTORE_PASSWORD),
+    // supaya update APK bisa dipasang di atas versi lama tanpa menghapus data.
+    signingConfigs {
+        release {
+            storeFile file('../termos.keystore')
+            storePassword ksPass
+            keyAlias 'termos'
+            keyPassword ksPass
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.8.0'
+}
